@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelLedger - Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>SentinelLedger</h1>
+        <p class="subtitle">Create your account</p>
+
+        <input type="text" id="username" placeholder="Username">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password (min 8 chars)">
+
+        <button onclick="register()" id="register-btn">Register</button>
+
+        <div class="message" id="msg"></div>
+
+        <div class="link-text">
+            Already have an account? <a href="index.html">Login</a>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

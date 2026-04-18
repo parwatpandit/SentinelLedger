@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelLedger - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+
+        <div class="dashboard-header">
+            <h1>SentinelLedger</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <h2>Current Balance</h2>
+            <div class="amount">$<span id="balance">0.00</span></div>
+            <div class="account">Account: <span id="account-number"></span></div>
+            <div class="account">Welcome, <span id="username"></span></div>
+        </div>
+
+        <!-- Send Money -->
+        <div class="section">
+            <h3>Send Money</h3>
+            <div class="send-form">
+                <input type="number" id="receiver" placeholder="Receiver Account Number">
+                <input type="number" id="amount" placeholder="Amount">
+                <button onclick="sendMoney()" id="send-btn">Send Money</button>
+                <div class="message" id="transfer-msg"></div>
+            </div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="section">
+            <h3>Transaction History</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Account</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
