@@ -20,9 +20,7 @@ class UserResponse(BaseModel):
     balance: float
     is_active: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # ----- Transaction Schemas -----
 class TransferRequest(BaseModel):
@@ -39,9 +37,7 @@ class TransactionResponse(BaseModel):
     status: str
     request_id: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # ----- Token Schemas -----
 class Token(BaseModel):
