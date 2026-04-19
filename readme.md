@@ -33,3 +33,6 @@ git add .
 git commit -m "SentinelLedger v2 Journey 1 complete"
 git remote add origin https://github.com/parwatpandit/SentinelLedger.git
 git push -u origin main
+
+8. run the app in docker => docker-compose up and 
+to stop => docker-compose down
