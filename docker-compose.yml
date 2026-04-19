@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=parwat123
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=sentinelledger
+      - SECRET_KEY=your_secret_key
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=parwat123
+      - POSTGRES_DB=sentinelledger
+    ports:
+      - "5434:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
