@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
-from routers import auth, users, transactions
+from routers import auth, users, transactions, admin
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -28,7 +28,7 @@ connections = {}
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(transactions.router)
+app.include_router(admin.router)
 
 @app.get("/")
 @limiter.limit("5/minute")
