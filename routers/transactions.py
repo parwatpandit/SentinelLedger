@@ -43,3 +43,24 @@ def get_transactions(current_user: User = Depends(get_current_user), db: Session
         (Transaction.sender_account == current_user.account_number) |
         (Transaction.receiver_account == current_user.account_number)
     ).all()
+
+
+@router.post("/deposit")
+def deposit(amount: float, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+    
+    current_user.balance += amount
+    
+    txn = Transaction(
+        sender_account=current_user.account_number,
+        receiver_account=current_user.account_number,
+        amount=amount,
+        request_id=f"deposit_{current_user.account_number}_{int(amount)}",
+        status="deposit"
+    )
+    
+    db.add(txn)
+    db.commit()
+    
+    return {"message": "Deposit successful", "new_balance": current_user.balance}
