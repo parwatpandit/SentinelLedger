@@ -18,8 +18,13 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[
+        "http://sentinelledger-frontend.s3-website.eu-west-2.amazonaws.com",
+        "http://18.130.226.110:8000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -28,6 +33,7 @@ connections = {}
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(transactions.router)
 app.include_router(admin.router)
 
 @app.get("/")

@@ -1,0 +1,922 @@
+can you give me a full instance complete and advance summary without missing anything's at all nothing at all so I can just pest it in new chat a perfect and clear and advance description with 100% detail
+Apr 18
+Here's your complete context to paste in a new chat:
+SentinelLedger — Full Project Context
+Project Overview
+I am building a banking web application called SentinelLedger using FastAPI, MySQL, HTML/CSS/JS. Journey 1 is fully complete and working. I am a beginner learning software development with the goal of becoming a job-ready full stack/fintech developer in London.
+My Setup
+OS: MacOS
+Python: 3.13
+Editor: VSCode
+Database: MySQL with MySQL Workbench
+Virtual environment: venv activated
+GitHub: https://github.com/parwatpandit/SentinelLedger
+Installed Libraries (requirements.txt)
+fastapi==0.136.0
+sqlalchemy==2.0.49
+pydantic==2.13.2
+argon2-cffi==25.1.0
+pymysql==1.1.2
+uvicorn[standard]==0.44.0
+python-jose==3.5.0
+passlib==1.7.4
+python-dotenv==1.2.2
+cryptography==46.0.7
+email-validator
+pytest==9.0.3
+httpx==0.28.1
+alembic
+Project Folder Structure
+SentinelLedger/
+├── main.py
+├── database.py
+├── models.py
+├── schemas.py
+├── .env
+├── .gitignore
+├── requirements.txt
+├── routers/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── users.py
+│   └── transactions.py
+├── utils/
+│   ├── __init__.py
+│   └── auth.py
+├── tests/
+│   ├── __init__.py
+│   └── test_api.py
+└── frontend/
+    ├── index.html
+    ├── register.html
+    ├── dashboard.html
+    ├── style.css
+    └── script.js
+Complete File Contents
+.env
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=sentinelledger
+SECRET_KEY=your_secret_key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+database.py
+python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+engine = create_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+models.py
+python
+from sqlalchemy import Column, Integer, BigInteger, String, Float, DateTime, Boolean
+from sqlalchemy.sql import func
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    account_number = Column(BigInteger, unique=True, index=True, nullable=False)
+    username = Column(String(50), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    balance = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_account = Column(BigInteger, nullable=False)
+    receiver_account = Column(BigInteger, nullable=False)
+    amount = Column(Float, nullable=False)
+    status = Column(String(20), default="success")
+    request_id = Column(String(50), unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+schemas.py
+python
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from datetime import datetime
+
+class UserRegister(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    account_number: int
+    username: str
+    email: str
+    balance: float
+    is_active: bool
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+class TransferRequest(BaseModel):
+    sender_account: int
+    receiver_account: int
+    amount: float = Field(..., gt=0)
+    request_id: str
+
+class TransactionResponse(BaseModel):
+    id: int
+    sender_account: int
+    receiver_account: int
+    amount: float
+    status: str
+    request_id: str
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+utils/auth.py
+python
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from jose import JWTError, jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
+ph = PasswordHasher()
+
+def hash_password(password: str) -> str:
+    return ph.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return ph.verify(hashed_password, plain_password)
+    except VerifyMismatchError:
+        return False
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        return username
+    except JWTError:
+        return None
+routers/auth.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User
+from schemas import UserRegister, UserResponse, Token
+from utils.auth import hash_password, verify_password, create_access_token
+import random
+
+router = APIRouter(tags=["Authentication"])
+
+def generate_account_number():
+    return random.randint(1000000000, 9999999999)
+
+@router.post("/register", response_model=UserResponse)
+def register(data: UserRegister, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.username == data.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+    user = User(
+        account_number=generate_account_number(),
+        username=data.username,
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        balance=1000.0
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.post("/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}
+routers/users.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User
+from schemas import UserResponse
+from utils.auth import verify_token
+
+router = APIRouter(tags=["Users"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    username = verify_token(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.get("/balance", response_model=UserResponse)
+def get_balance(current_user: User = Depends(get_current_user)):
+    return current_user
+routers/transactions.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User, Transaction
+from schemas import TransferRequest, TransactionResponse
+from routers.users import get_current_user
+
+router = APIRouter(tags=["Transactions"])
+
+@router.post("/transfer")
+def transfer(data: TransferRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if db.query(Transaction).filter(Transaction.request_id == data.request_id).first():
+        raise HTTPException(status_code=400, detail="Duplicate transaction")
+    if current_user.account_number != data.sender_account:
+        raise HTTPException(status_code=403, detail="Unauthorized transfer")
+    if data.amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid amount")
+    receiver = db.query(User).filter(User.account_number == data.receiver_account).first()
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Receiver not found")
+    if current_user.balance < data.amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+    try:
+        current_user.balance -= data.amount
+        receiver.balance += data.amount
+        txn = Transaction(
+            sender_account=data.sender_account,
+            receiver_account=data.receiver_account,
+            amount=data.amount,
+            request_id=data.request_id,
+            status="success"
+        )
+        db.add(txn)
+        db.commit()
+        return {"message": "Transfer successful", "new_balance": current_user.balance}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/transactions", response_model=list[TransactionResponse])
+def get_transactions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(Transaction).filter(
+        (Transaction.sender_account == current_user.account_number) |
+        (Transaction.receiver_account == current_user.account_number)
+    ).all()
+main.py
+python
+from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from database import Base, engine
+from routers import auth, users, transactions
+import json
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="SentinelLedger", version="2.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+connections = {}
+
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(transactions.router)
+
+@app.get("/")
+def root():
+    return {"message": "SentinelLedger v2 is running!"}
+
+@app.websocket("/ws/{account_number}")
+async def websocket_endpoint(websocket: WebSocket, account_number: int):
+    await websocket.accept()
+    connections[account_number] = websocket
+    try:
+        while True:
+            await websocket.receive_text()
+    except:
+        connections.pop(account_number, None)
+tests/test_api.py
+python
+import pytest
+import time
+from fastapi.testclient import TestClient
+from main import app
+
+client = TestClient(app)
+
+def test_register():
+    unique = f"pytestuser_{int(time.time())}"
+    response = client.post("/register", json={
+        "username": unique,
+        "email": f"{unique}@test.com",
+        "password": "password123"
+    })
+    assert response.status_code == 200
+    assert "account_number" in response.json()
+
+def test_register_duplicate():
+    response = client.post("/register", json={
+        "username": "pytestuser",
+        "email": "pytest@test.com",
+        "password": "password123"
+    })
+    assert response.status_code == 400
+
+def test_login():
+    response = client.post("/login", data={
+        "username": "pytestuser",
+        "password": "password123"
+    })
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+def test_login_wrong_password():
+    response = client.post("/login", data={
+        "username": "pytestuser",
+        "password": "wrongpassword"
+    })
+    assert response.status_code == 401
+
+def test_balance():
+    login = client.post("/login", data={
+        "username": "pytestuser",
+        "password": "password123"
+    })
+    token = login.json()["access_token"]
+    response = client.get("/balance", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert response.status_code == 200
+    assert "balance" in response.json()
+
+def test_balance_no_token():
+    response = client.get("/balance")
+    assert response.status_code == 401
+What Journey 1 Achieved
+✅ FastAPI backend with proper structure
+✅ MySQL database with BigInteger account numbers
+✅ Argon2 password hashing (2026 standard)
+✅ JWT authentication on all protected routes
+✅ CORS middleware — frontend connected to backend
+✅ Idempotency keys — no duplicate transfers
+✅ Transaction history
+✅ WebSocket real-time balance updates
+✅ .env file — no secrets in code
+✅ .gitignore — .env never pushed to GitHub
+✅ Proper routers structure
+✅ Pydantic validation on all inputs
+✅ pytest — 6 tests, 0 warnings
+✅ Frontend — Login, Register, Dashboard
+✅ Pushed to GitHub
+Journey 2 Plan (What's Next)
+Phase 5  — Redis caching (faster balance lookups)
+Phase 6  — Rate limiting (prevent abuse)
+Phase 7  — Deposit endpoint (add money)
+Phase 8  — Admin dashboard
+Phase 9  — PostgreSQL migration
+Phase 10 — Docker containerization
+Phase 11 — AWS deployment
+Phase 12 — ML fraud detection
+Phase 13 — Kubernetes scaling
+My Learning Goals
+Become a job-ready full stack fintech developer in London
+Build SentinelLedger to 70% of a real banking system
+Learn: Python → SQL → JavaScript/TypeScript → Go → Bash
+Target roles: Junior Backend, Junior Full Stack, Junior Fintech Developer
+Start Instruction for New Chat
+"Journey 1 of SentinelLedger is complete. All code above is working and pushed to GitHub. Start Journey 2 — begin with Redis caching. I am a beginner so explain everything clearly as we build step by step."
+Paste all of this at the start of your new chat — I will have 100% context instantly. Good luck! 🚀
+
+
+
+can you give me a full instance complete and advance summary without missing anything's at all nothing at all so I can just pest it in new chat a perfect and clear and advance description with 100% detail I am planning to move to new chat I can feel you are slower now
+6:43 PM
+Here's your complete context to paste in a new chat:
+SentinelLedger — Full Project Context (Journey 2 In Progress)
+Project Overview
+I am building a banking web application called SentinelLedger using FastAPI, PostgreSQL, Redis, HTML/CSS/JS. Journey 1 is fully complete. Journey 2 is in progress. I am a beginner learning software development with the goal of becoming a job-ready full stack/fintech developer in London.
+My Setup
+OS: MacOS (MacBook M1 — ARM64)
+Python: 3.13
+Editor: VSCode
+Database: PostgreSQL 17 with pgAdmin 4
+Virtual environment: venv activated
+GitHub: https://github.com/parwatpandit/SentinelLedger
+Redis: installed via Homebrew
+Docker: Docker Desktop installed and working
+Journey 2 Progress
+✅ Phase 5 — Redis caching (balance endpoint cached for 30 seconds)
+✅ Phase 6 — Rate limiting (slowapi — 5 requests/minute on root)
+✅ Phase 7 — Deposit endpoint added
+✅ Phase 8 — Admin dashboard (view all users, transactions, block/unblock users)
+✅ Phase 9 — Migrated from MySQL to PostgreSQL
+✅ Phase 10 — Docker containerization complete
+🔄 Phase 11 — AWS Deployment (in progress — AWS account created, MFA set up, getting Access Keys now)
+⏳ Phase 12 — ML fraud detection
+⏳ Phase 13 — Kubernetes scaling
+Current Power Level
+~55% of a real banking system
+Target: 70% (reached after Phase 12)
+Complete File Contents
+.env
+DB_USER=postgres
+DB_PASSWORD=parwat123
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=sentinelledger
+SECRET_KEY=your_secret_key
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+database.py
+python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
+
+DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+engine = create_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+models.py
+python
+from sqlalchemy import Column, Integer, BigInteger, String, Float, DateTime, Boolean
+from sqlalchemy.sql import func
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    account_number = Column(BigInteger, unique=True, index=True, nullable=False)
+    username = Column(String(50), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    balance = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_account = Column(BigInteger, nullable=False)
+    receiver_account = Column(BigInteger, nullable=False)
+    amount = Column(Float, nullable=False)
+    status = Column(String(20), default="success")
+    request_id = Column(String(50), unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+schemas.py
+python
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from datetime import datetime
+
+class UserRegister(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    account_number: int
+    username: str
+    email: str
+    balance: float
+    is_active: bool
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+class TransferRequest(BaseModel):
+    sender_account: int
+    receiver_account: int
+    amount: float = Field(..., gt=0)
+    request_id: str
+
+class TransactionResponse(BaseModel):
+    id: int
+    sender_account: int
+    receiver_account: int
+    amount: float
+    status: str
+    request_id: str
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+utils/auth.py
+python
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from jose import JWTError, jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
+ph = PasswordHasher()
+
+def hash_password(password: str) -> str:
+    return ph.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return ph.verify(hashed_password, plain_password)
+    except VerifyMismatchError:
+        return False
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        return username
+    except JWTError:
+        return None
+routers/auth.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User
+from schemas import UserRegister, UserResponse, Token
+from utils.auth import hash_password, verify_password, create_access_token
+import random
+
+router = APIRouter(tags=["Authentication"])
+
+def generate_account_number():
+    return random.randint(1000000000, 9999999999)
+
+@router.post("/register", response_model=UserResponse)
+def register(data: UserRegister, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.username == data.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+    user = User(
+        account_number=generate_account_number(),
+        username=data.username,
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        balance=1000.0
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.post("/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}
+routers/users.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User
+from schemas import UserResponse
+from utils.auth import verify_token
+import redis
+import json
+
+router = APIRouter(tags=["Users"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    username = verify_token(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.get("/balance", response_model=UserResponse)
+def get_balance(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    cache_key = f"balance:{current_user.account_number}"
+    cached = r.get(cache_key)
+    if cached:
+        print("✅ Served from Redis cache")
+        return current_user
+    r.setex(cache_key, 30, json.dumps({"balance": current_user.balance}))
+    print("📦 Served from MySQL, saved to Redis")
+    return current_user
+routers/transactions.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User, Transaction
+from schemas import TransferRequest, TransactionResponse
+from routers.users import get_current_user
+
+router = APIRouter(tags=["Transactions"])
+
+@router.post("/transfer")
+def transfer(data: TransferRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if db.query(Transaction).filter(Transaction.request_id == data.request_id).first():
+        raise HTTPException(status_code=400, detail="Duplicate transaction")
+    if current_user.account_number != data.sender_account:
+        raise HTTPException(status_code=403, detail="Unauthorized transfer")
+    if data.amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid amount")
+    receiver = db.query(User).filter(User.account_number == data.receiver_account).first()
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Receiver not found")
+    if current_user.balance < data.amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+    try:
+        current_user.balance -= data.amount
+        receiver.balance += data.amount
+        txn = Transaction(
+            sender_account=data.sender_account,
+            receiver_account=data.receiver_account,
+            amount=data.amount,
+            request_id=data.request_id,
+            status="success"
+        )
+        db.add(txn)
+        db.commit()
+        return {"message": "Transfer successful", "new_balance": current_user.balance}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/transactions", response_model=list[TransactionResponse])
+def get_transactions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(Transaction).filter(
+        (Transaction.sender_account == current_user.account_number) |
+        (Transaction.receiver_account == current_user.account_number)
+    ).all()
+
+@router.post("/deposit")
+def deposit(amount: float, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
+    current_user.balance += amount
+    txn = Transaction(
+        sender_account=current_user.account_number,
+        receiver_account=current_user.account_number,
+        amount=amount,
+        request_id=f"deposit_{current_user.account_number}_{int(amount)}",
+        status="deposit"
+    )
+    db.add(txn)
+    db.commit()
+    return {"message": "Deposit successful", "new_balance": current_user.balance}
+routers/admin.py
+python
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from database import get_db
+from models import User, Transaction
+from schemas import UserResponse, TransactionResponse
+from routers.users import get_current_user
+
+router = APIRouter(prefix="/admin", tags=["Admin"])
+
+def get_admin_user(current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+@router.get("/users", response_model=list[UserResponse])
+def get_all_users(admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    return db.query(User).all()
+
+@router.get("/transactions", response_model=list[TransactionResponse])
+def get_all_transactions(admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    return db.query(Transaction).all()
+
+@router.put("/block/{account_number}")
+def block_user(account_number: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.account_number == account_number).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    db.commit()
+    return {"message": f"User {account_number} has been blocked"}
+
+@router.put("/unblock/{account_number}")
+def unblock_user(account_number: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.account_number == account_number).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    db.commit()
+    return {"message": f"User {account_number} has been unblocked"}
+main.py
+python
+from fastapi import FastAPI, WebSocket, Request
+from fastapi.middleware.cors import CORSMiddleware
+from database import Base, engine
+from routers import auth, users, transactions, admin
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+import json
+
+Base.metadata.create_all(bind=engine)
+
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(title="SentinelLedger", version="2.0")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+connections = {}
+
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(transactions.router)
+app.include_router(admin.router)
+
+@app.get("/")
+@limiter.limit("5/minute")
+def root(request: Request):
+    return {"message": "SentinelLedger v2 is running!"}
+
+@app.websocket("/ws/{account_number}")
+async def websocket_endpoint(websocket: WebSocket, account_number: int):
+    await websocket.accept()
+    connections[account_number] = websocket
+    try:
+        while True:
+            await websocket.receive_text()
+    except:
+        connections.pop(account_number, None)
+Dockerfile
+dockerfile
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+docker-compose.yml
+yaml
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=parwat123
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=sentinelledger
+      - SECRET_KEY=your_secret_key
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=parwat123
+      - POSTGRES_DB=sentinelledger
+    ports:
+      - "5434:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+.dockerignore
+venv/
+__pycache__/
+.env
+*.pyc
+.git
+Where We Stopped
+Phase 11 — AWS Deployment is in progress.
+✅ AWS account created
+✅ MFA set up with Google Authenticator
+✅ AWS CLI installed via Homebrew
+🔄 Next step: Get Access Keys from AWS Security Credentials and run aws configure in terminal
+Start Instruction for New Chat
+"Journey 2 of SentinelLedger is in progress. All code above is working. We stopped at Phase 11 AWS Deployment — AWS account is created, MFA is set up, AWS CLI is installed. Next step is to get Access Keys and run aws configure. I am a beginner so explain everything clearly step by step."
+Good luck! 🚀

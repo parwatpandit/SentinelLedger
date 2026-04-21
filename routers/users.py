@@ -5,6 +5,7 @@ from database import get_db
 from models import User
 from schemas import UserResponse
 from utils.auth import verify_token
+import os
 import redis
 import json
 
@@ -12,7 +13,7 @@ router = APIRouter(tags=["Users"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 # Redis connection
-r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
+r = redis.Redis(host=os.getenv("REDIS_HOST", "localhost"), port=6379, db=0, decode_responses=True)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     username = verify_token(token)

@@ -36,3 +36,7 @@ git push -u origin main
 
 8. run the app in docker => docker-compose up and 
 to stop => docker-compose down
+
+9. link to my online browser:
+http://sentinelledger-frontend.s3-website.eu-west-2.amazonaws.com
+

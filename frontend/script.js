@@ -1,4 +1,4 @@
-const API = "http://127.0.0.1:8000";
+const API = "http://18.130.226.110:8000";
 
 // ----- UTILITIES -----
 function showMessage(id, text, type) {
@@ -240,7 +240,7 @@ function startWebSocket() {
     const account = getAccount();
     if (!account) return;
 
-    const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${account}`);
+    const ws = new WebSocket(`ws://18.130.226.110:8000/ws/${account}`);
     ws.onmessage = async function () {
         await loadDashboard();
     }
