@@ -4,11 +4,13 @@ from database import get_db
 from models import User, Transaction
 from schemas import TransferRequest, TransactionResponse
 from routers.users import get_current_user
+# import main
+from connections import connections
 
 router = APIRouter(tags=["Transactions"])
 
 @router.post("/transfer")
-def transfer(data: TransferRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def transfer(data: TransferRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if db.query(Transaction).filter(Transaction.request_id == data.request_id).first():
         raise HTTPException(status_code=400, detail="Duplicate transaction")
     if current_user.account_number != data.sender_account:
@@ -32,6 +34,19 @@ def transfer(data: TransferRequest, current_user: User = Depends(get_current_use
         )
         db.add(txn)
         db.commit()
+
+        # # Notify receiver via WebSocket
+        # if receiver.account_number in main.connections:
+        #     await main.connections[receiver.account_number].send_text("update")
+
+        # # Notify sender via WebSocket
+        # if current_user.account_number in main.connections:
+        #     await main.connections[current_user.account_number].send_text("update")
+        if receiver.account_number in connections:
+            await connections[receiver.account_number].send_text("update")
+        if current_user.account_number in connections:
+            await connections[current_user.account_number].send_text("update")
+
         return {"message": "Transfer successful", "new_balance": current_user.balance}
     except Exception as e:
         db.rollback()
@@ -44,14 +59,11 @@ def get_transactions(current_user: User = Depends(get_current_user), db: Session
         (Transaction.receiver_account == current_user.account_number)
     ).all()
 
-
 @router.post("/deposit")
 def deposit(amount: float, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-    
     current_user.balance += amount
-    
     txn = Transaction(
         sender_account=current_user.account_number,
         receiver_account=current_user.account_number,
@@ -59,8 +71,6 @@ def deposit(amount: float, current_user: User = Depends(get_current_user), db: S
         request_id=f"deposit_{current_user.account_number}_{int(amount)}",
         status="deposit"
     )
-    
     db.add(txn)
     db.commit()
-    
     return {"message": "Deposit successful", "new_balance": current_user.balance}

@@ -40,3 +40,5 @@ to stop => docker-compose down
 9. link to my online browser:
 http://sentinelledger-frontend.s3-website.eu-west-2.amazonaws.com
 
+10. SSH login
+    ssh -i ~/SentinelLedger/sentinelledger-key.pem ubuntu@18.130.226.110
