@@ -36,3 +36,7 @@ httpx==0.28.1
 pytest==9.0.3
 alembic
 email-validator==2.3.0
+numpy
+pandas
+scikit-learn
+imbalanced-learn
