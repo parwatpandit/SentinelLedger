@@ -24,6 +24,7 @@ class Transaction(Base):
     amount = Column(Float, nullable=False)
     status = Column(String(20), default="success")
     request_id = Column(String(50), unique=True, nullable=False)
+    category = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class PasswordResetToken(Base):
@@ -51,4 +52,21 @@ class AuditLog(Base):
     action = Column(String(100), nullable=False)
     target = Column(String(100), nullable=False)
     details = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class DailyLimit(Base):
+    __tablename__ = "daily_limits"
+    id = Column(Integer, primary_key=True, index=True)
+    account_number = Column(BigInteger, unique=True, nullable=False)
+    daily_limit = Column(Float, default=2000.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ScheduledPayment(Base):
+    __tablename__ = "scheduled_payments"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_account = Column(BigInteger, nullable=False)
+    receiver_account = Column(BigInteger, nullable=False)
+    amount = Column(Float, nullable=False)
+    scheduled_date = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(20), default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

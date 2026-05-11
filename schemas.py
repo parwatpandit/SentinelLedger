@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
 
-# ----- User Schemas -----
 class UserRegister(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
@@ -22,12 +21,12 @@ class UserResponse(BaseModel):
     created_at: datetime
     model_config = {"from_attributes": True}
 
-# ----- Transaction Schemas -----
 class TransferRequest(BaseModel):
     sender_account: int
     receiver_account: int
     amount: float = Field(..., gt=0)
     request_id: str
+    category: Optional[str] = None
 
 class TransactionResponse(BaseModel):
     id: int
@@ -36,13 +35,22 @@ class TransactionResponse(BaseModel):
     amount: float
     status: str
     request_id: str
+    category: Optional[str] = None
     created_at: datetime
     model_config = {"from_attributes": True}
 
-# ----- Token Schemas -----
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class DailyLimitRequest(BaseModel):
+    daily_limit: float = Field(..., gt=0)
+
+class ScheduledPaymentRequest(BaseModel):
+    sender_account: int
+    receiver_account: int
+    amount: float = Field(..., gt=0)
+    scheduled_date: datetime
