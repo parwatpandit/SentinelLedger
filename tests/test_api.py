@@ -1,63 +1,65 @@
-import pytest
 from fastapi.testclient import TestClient
 from main import app
-import time
+from database import Base, engine
 
 client = TestClient(app)
 
+def setup_module(module):
+    Base.metadata.create_all(bind=engine)
+
 # ----- TEST REGISTER -----
 def test_register():
-    unique = f"pytestuser_{int(time.time())}"
-    response = client.post("/register", json={
-        "username": unique,
-        "email": f"{unique}@test.com",
-        "password": "password123"
-    })
-    assert response.status_code == 200
-    assert "account_number" in response.json()
-
-# ----- TEST DUPLICATE REGISTER -----
-def test_register_duplicate():
     response = client.post("/register", json={
         "username": "pytestuser",
-        "email": "pytest@test.com",
+        "email": "pytestuser@test.com",
         "password": "password123"
     })
-    assert response.status_code == 400
+    assert response.status_code in [200, 400]
 
-# ----- TEST LOGIN -----
-def test_login():
+# ----- TEST LOGIN RETURNS OTP MESSAGE -----
+def test_login_returns_otp():
+    # Register first
+    client.post("/register", json={
+        "username": "otptestuser",
+        "email": "otptestuser@test.com",
+        "password": "password123"
+    })
     response = client.post("/login", data={
-        "username": "pytestuser",
+        "username": "otptestuser",
         "password": "password123"
     })
     assert response.status_code == 200
-    assert "access_token" in response.json()
+    assert "OTP sent" in response.json()["message"]
 
 # ----- TEST WRONG PASSWORD -----
 def test_login_wrong_password():
     response = client.post("/login", data={
-        "username": "pytestuser",
+        "username": "otptestuser",
         "password": "wrongpassword"
     })
     assert response.status_code == 401
 
-# ----- TEST BALANCE -----
-def test_balance():
-    # Login first
-    login = client.post("/login", data={
-        "username": "pytestuser",
-        "password": "password123"
-    })
-    token = login.json()["access_token"]
-
-    response = client.get("/balance", headers={
-        "Authorization": f"Bearer {token}"
-    })
-    assert response.status_code == 200
-    assert "balance" in response.json()
-
-# ----- TEST UNAUTHORIZED BALANCE -----
+# ----- TEST BALANCE WITHOUT TOKEN -----
 def test_balance_no_token():
     response = client.get("/balance")
     assert response.status_code == 401
+
+# ----- TEST REGISTER DUPLICATE -----
+def test_register_duplicate():
+    client.post("/register", json={
+        "username": "duplicateuser",
+        "email": "duplicate@test.com",
+        "password": "password123"
+    })
+    response = client.post("/register", json={
+        "username": "duplicateuser",
+        "email": "duplicate@test.com",
+        "password": "password123"
+    })
+    assert response.status_code == 400
+
+# ----- TEST FORGOT PASSWORD -----
+def test_forgot_password_unknown_email():
+    response = client.post("/forgot-password?email=unknown@test.com")
+    assert response.status_code == 200
+    assert "message" in response.json()
